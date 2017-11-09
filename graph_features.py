@@ -5,32 +5,52 @@ graph_generation.py should be run before running this file.
 """
 
 from collections import namedtuple
+import json
 import os
 import snap
-# TODO? jaccard_index, avg_path_len, betweenness
-NetworkStats = namedtuple("NetworkStats", "node_count edge_count clustering_cf num_sccs max_scc_proportion")
+
+
+# Look into H-index from TA feedback
+NetworkStats = namedtuple("NetworkStats", "node_count edge_count clustering_cf num_sccs "
+	"max_scc_proportion avg_patents_per_inventor modularity")
 
 network_folder = '../data/networks/'
 
+
 class AssigneeGraph(object):
-	def __init__(self, company_name, Graph):
+	def __init__(self, company_name, Graph, metadata):
 		self.company_name = company_name
 		self.Graph = Graph
+		self.metadata = metadata
 
 
 # Initial step: Load all generated network files
-def load_networks(folder, file_list=None):
+def load_networks(folder, graph_list=None):
 	AssigneeGraphs = []
-	if not file_list:
-		file_list = []
+	if not graph_list:
+		graph_list = []
 		# Load all networks in folder
 		for file in os.listdir(folder):
 			if file.endswith(".txt"):
-				file_list.append(os.path.join(folder, file))
-	for filename in file_list:
+				graph_list.append(os.path.join(folder, file))
+	for filename in graph_list:
 		Graph = snap.LoadEdgeList(snap.PUNGraph, filename, 0, 1, '\t')
-		AssigneeGraphs.append(AssigneeGraph(os.path.basename(filename), Graph))
+		meta_file = os.path.splitext(filename)[0]+'.json'
+		with open(meta_file, 'r') as fp:
+			metadata = json.load(fp)
+		AssigneeGraphs.append(AssigneeGraph(os.path.basename(filename), Graph, metadata))
 	return AssigneeGraphs
+
+
+def get_modularity(Graph):
+	# Uses the Girvan-Newman community detection algorithm based on betweenness centrality on Graph.
+	CmtyV = snap.TCnComV()
+	modularity = snap.CommunityGirvanNewman(Graph, CmtyV)
+	return modularity
+
+
+def h_index():
+	pass
 
 
 def main():
@@ -49,8 +69,13 @@ def main():
 		num_sccs = len(Components)
 		MxScc = snap.GetMxScc(Graph)
 		max_scc_proportion = float(MxScc.GetNodes()) / node_count
-		net_stats = NetworkStats(node_count=node_count, edge_count=edge_count, clustering_cf=cc, num_sccs=num_sccs, max_scc_proportion=max_scc_proportion)
+		avg_patents_per_inventor =float(AGraph.metadata['number_of_patents']) / node_count
+		modularity = get_modularity(Graph)
+		net_stats = NetworkStats(node_count=node_count, edge_count=edge_count, clustering_cf=cc,
+			num_sccs=num_sccs, max_scc_proportion=max_scc_proportion,
+			avg_patents_per_inventor=avg_patents_per_inventor, modularity=modularity)
 		print AGraph.company_name
 		print(net_stats)
+
 
 main()

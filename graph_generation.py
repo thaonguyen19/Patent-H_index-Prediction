@@ -9,6 +9,7 @@ You will need the following files to run this code:
     - patent_assignee.tsv
 """
 
+import json
 import snap
 import pandas as pd
 import numpy as np
@@ -84,6 +85,9 @@ for c in companies:
     patents = company_info['patent_id'].drop_duplicates().tolist()
     #Hash of inventor_id -> node_id (for easier graph manipulation)
     inventor_id_to_index = snap.TStrIntH()
+
+    metadata = {}
+    metadata['number_of_patents'] = len(patents)
     #Add all nodes to graph
     for i in range(0, len(nodes)):
         Graph.AddNode(i)
@@ -103,6 +107,8 @@ for c in companies:
                     if not Graph.IsEdge(inventor1, inventor2):
                         Graph.AddEdge(inventor1, inventor2)
     print snap.PrintInfo(Graph)
+    with open(out_folder + '%s.json' %company_name, 'w') as fp:
+        json.dump(metadata, fp, sort_keys=True, indent=4)
     snap.SaveEdgeList(Graph, out_folder + '%s.txt' %company_name, \
                       "Collaboration network for company, drawn from patent data")
     print "Saved data for %s" %company_name
