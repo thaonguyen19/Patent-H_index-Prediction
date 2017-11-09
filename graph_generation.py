@@ -21,9 +21,9 @@ out_folder = '../data/networks/'
 
 print "Loading Data..."
 
-df_assignee = pd.read_csv(data_folder + 'assignee.tsv', delimiter='\t', header=0)
+df_assignee = pd.read_csv(data_folder + 'assignee.tsv', delimiter='\t', header=0, usecols=['id', 'name_first', 'name_last', 'organization'])
 df_inventor = pd.read_csv(data_folder + 'inventor.tsv', delimiter='\t', header=0)
-df_patent = pd.read_csv(data_folder + 'patent.tsv', delimiter='\t', header=0)
+df_patent = pd.read_csv(data_folder + 'patent.tsv', delimiter='\t', header=0, usecols=['id', 'date'])
 df_patent_inventor = pd.read_csv(data_folder + 'patent_inventor.tsv', delimiter='\t', header=0)
 df_patent_assignee = pd.read_csv(data_folder + 'patent_assignee.tsv', delimiter='\t', header=0) 
 
@@ -43,11 +43,6 @@ print "Filtering Data..."
 df_assignee = df_assignee[pd.isnull(df_assignee.name_first) & \
                           pd.isnull(df_assignee.name_last) & \
                           pd.notnull(df_assignee.organization)]
-
-df_assignee = df_assignee.drop(['name_first','name_last', 'type'], axis=1)
-
-#Free some space from patents dataframe
-df_patent = df_patent.drop(['type', 'number', 'country', 'abstract', 'title', 'kind', 'num_claims', 'filename'], axis=1)
 
 #Filter patents not not issued from 1990 - 2000
 df_patent = df_patent[df_patent['date'] > datetime.datetime(1990, 1, 1)]
