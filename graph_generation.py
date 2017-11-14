@@ -23,7 +23,7 @@ out_folder = '../data/networks/'
 print "Loading Data..."
 
 df_assignee = pd.read_csv(data_folder + 'assignee.tsv', delimiter='\t', header=0, usecols=['id', 'name_first', 'name_last', 'organization'])
-df_inventor = pd.read_csv(data_folder + 'inventor.tsv', delimiter='\t', header=0)
+df_inventor = pd.read_csv(data_folder + 'inventor.tsv', delimiter='\t', header=0, dtype=str)
 df_patent = pd.read_csv(data_folder + 'patent.tsv', delimiter='\t', header=0, usecols=['id', 'date'])
 df_patent_inventor = pd.read_csv(data_folder + 'patent_inventor.tsv', delimiter='\t', header=0)
 df_patent_assignee = pd.read_csv(data_folder + 'patent_assignee.tsv', delimiter='\t', header=0) 
@@ -58,6 +58,9 @@ df_all = pd.merge(df_all, df_assignee, how='inner', on='assignee_id')
 df_all = pd.merge(df_all, df_inventor, how='inner', on='inventor_id')
 df_all = pd.merge(df_all, df_patent, how='inner', on='patent_id')
 
+#Set index to make retrieval easier later
+df_inventor.set_index('inventor_id', inplace=True)
+
 #Create dataframe to count patents
 df_counts = df_all[['assignee_id', 'organization']].copy()
 
@@ -65,15 +68,16 @@ df_counts = df_all[['assignee_id', 'organization']].copy()
 df_counts['company_count'] = df_all.assignee_id.map(df_all.assignee_id.value_counts())
 df_counts = df_counts.drop_duplicates()
 df_counts = df_counts.sort_values(by='company_count', ascending=False)
-df_counts.set_index('assignee_id')
 
 #Extract company ids who produced > 100 patents in timeframe
 companies = df_counts[df_counts['company_count'] > 100]['assignee_id']
 
+df_counts.set_index('assignee_id', inplace=True)
+
 print "Generating Graphs..."
 
 for c in companies:
-    company_name = df_counts[df_counts['assignee_id'] == c]['organization'].values[0]
+    company_name = df_counts.loc[c, 'organization']
     #Strip special characters from company_name
     company_name = re.sub('[^0-9a-zA-Z]+', '', company_name)
     Graph = snap.PUNGraph.New()
@@ -109,6 +113,17 @@ for c in companies:
     print snap.PrintInfo(Graph)
     with open(out_folder + '%s.json' %company_name, 'w') as fp:
         json.dump(metadata, fp, sort_keys=True, indent=4)
+    #Save inventor metadata as .tsv
+    df_inventor_metadata = {'inventor_id':[], 'node_id':[], 'inventor_name':[]}
+    for inventor in inventor_id_to_index:
+        df_inventor_metadata['inventor_id'].append(inventor)
+        df_inventor_metadata['node_id'].append(inventor_id_to_index[inventor])
+        inventor_name = '%s %s' %(df_inventor.loc[inventor, 'name_first'], \
+                                  df_inventor.loc[inventor,'name_last'])
+        df_inventor_metadata['inventor_name'].append(inventor_name)
+    df_inventor_metadata = pd.DataFrame(df_inventor_metadata)
+    df_inventor_metadata.set_index('node_id')
+    df_inventor_metadata.to_csv(out_folder + '%s_inventor_metadata.tsv' %company_name, sep='\t', index=False)
     snap.SaveEdgeList(Graph, out_folder + '%s.txt' %company_name, \
                       "Collaboration network for company, drawn from patent data")
     print "Saved data for %s" %company_name
