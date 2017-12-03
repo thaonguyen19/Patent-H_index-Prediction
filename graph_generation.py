@@ -69,7 +69,7 @@ df_counts['company_count'] = df_all.assignee_id.map(df_all.assignee_id.value_cou
 df_counts = df_counts.drop_duplicates()
 df_counts = df_counts.sort_values(by='company_count', ascending=False)
 
-#Extract company ids who produced > 100 patents in timeframe
+#Extract company ids who had > 100 unique patent-inventor pairings in timeframe
 companies = df_counts[df_counts['company_count'] > 100]['assignee_id']
 
 df_counts.set_index('assignee_id', inplace=True)
