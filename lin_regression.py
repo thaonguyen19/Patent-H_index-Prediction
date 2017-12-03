@@ -3,6 +3,8 @@ Python file to run cross-validated linear regression prediction
 
 You should have run graph_generation.py, graph_features.py,
 and the citation feature generation before running this file.
+
+Inputs are json files named by company
 """
 
 from sklearn.model_selection import cross_val_predict
@@ -32,6 +34,7 @@ def load_data(folder):
         company_x = []
         for k in sorted(data):
             company_x.append(data[k])
+        #Filter out the companies without full complement of features
         if len(company_x) == num_features:
             y.append(company_y)
             x.extend(company_x)
@@ -39,6 +42,7 @@ def load_data(folder):
             rem.append(name)
     for c in rem:
         company_names.remove(c)
+    #Convert to ndarrays
     x = np.array(x)
     x = x.reshape((len(company_names), len(x)/len(company_names)))
     y = np.array(y)
@@ -48,15 +52,10 @@ def load_data(folder):
 def main():
     company_names, X, Y = load_data(network_folder)
     lr = linear_model.LinearRegression()
+    #Run k-fold cross validation and prediction simultaneously
     Y_pred = cross_val_predict(lr, X, Y, cv=10)
-    Y_mean = np.mean(Y)
-    Y_pred_mean = np.mean(Y_pred)
-    nope=0
     for pred_pair in zip(Y, Y_pred):
         print "Actual: %s, Predicted: %s" %pred_pair
-        if pred_pair[0] > Y_mean != pred_pair[1] > Y_pred_mean:
-            nope+= 1
-    print "%s / %s" %(nope, len(Y))
     print mean_squared_error(Y, Y_pred)
 
 main()
