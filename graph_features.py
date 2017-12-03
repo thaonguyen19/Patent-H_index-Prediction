@@ -79,7 +79,6 @@ def main():
         AGraph.metadata['modularity'] = modularity
         with open(network_folder + '%s.json' %AGraph.company_name, 'w') as fp:
             json.dump(AGraph.metadata, fp, sort_keys=True, indent=4)
-        print AGraph.company_name
-        print AGraph.metadata
+    print len(AssigneeGraphs)
 
 main()
