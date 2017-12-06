@@ -9,7 +9,7 @@ Inputs are json files named by company
 
 from sklearn.model_selection import cross_val_predict
 from sklearn import linear_model
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from sklearn.decomposition import PCA
 import os
 import json
@@ -36,7 +36,7 @@ def load_data(folder):
         with open(name, 'r') as fp:
             data = json.load(fp)
         company_y = data.pop('hindex')
-        data.pop('forward_citation_count')        
+        data.pop('forward_citation_count') 
         company_x = []
         for k in sorted(data):
             company_x.append(data[k])
@@ -72,6 +72,7 @@ def main():
         Y_pred = convert_to_rank(Y_pred)
     for pred_pair in zip(Y, Y_pred):
         print "Actual: %s, Predicted: %s" %pred_pair
-    print mean_squared_error(Y, Y_pred)
+    print "Mean Absolute Error: %s" %mean_absolute_error(Y, Y_pred)
+    print "Ground Truth StdDev: %s" %np.std(Y)
 
 main()
