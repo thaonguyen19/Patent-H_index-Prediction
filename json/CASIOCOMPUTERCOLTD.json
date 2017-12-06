@@ -8,5 +8,6 @@
     "modularity": 0.7498947900008418, 
     "node_count": 79, 
     "num_sccs": 10, 
-    "number_of_patents": 341
+    "number_of_patents": 341, 
+    "oldest_patent": 10
 }
