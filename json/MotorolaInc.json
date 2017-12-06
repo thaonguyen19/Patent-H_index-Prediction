@@ -1,0 +1,12 @@
+{
+    "avg_patents_per_inventor": 1.2576, 
+    "clustering_cf": 0.6798274591858666, 
+    "edge_count": 1336, 
+    "forward_citation_count": 5894, 
+    "hindex": 29, 
+    "max_scc_proportion": 0.8352, 
+    "modularity": 0.7789142896841055, 
+    "node_count": 625, 
+    "num_sccs": 36, 
+    "number_of_patents": 786
+}
