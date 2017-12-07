@@ -16,6 +16,11 @@ import numpy as np
 import datetime
 import re
 
+#Constants
+patents_cutoff = 100
+min_date = datetime.datetime(1990, 1, 1)
+max_date = datetime.datetime(2000, 1, 1)
+
 #Path to folder with all the .tsvs downloaded from PatentsView
 data_folder = '../data/'
 out_folder = '../data/networks/'
@@ -46,8 +51,8 @@ df_assignee = df_assignee[pd.isnull(df_assignee.name_first) & \
                           pd.notnull(df_assignee.organization)]
 
 #Filter patents not not issued from 1990 - 2000
-df_patent = df_patent[df_patent['date'] > datetime.datetime(1990, 1, 1)]
-df_patent = df_patent[df_patent['date'] < datetime.datetime(2000, 1, 1)]
+df_patent = df_patent[df_patent['date'] > min_date]
+df_patent = df_patent[df_patent['date'] < max_date]
 df_patent = df_patent[pd.notnull(df_patent.date)]
 
 print "Joining Data..."
@@ -69,8 +74,8 @@ df_counts['company_count'] = df_all.assignee_id.map(df_all.assignee_id.value_cou
 df_counts = df_counts.drop_duplicates()
 df_counts = df_counts.sort_values(by='company_count', ascending=False)
 
-#Extract company ids who produced > 100 patents in timeframe
-companies = df_counts[df_counts['company_count'] > 100]['assignee_id']
+#Extract company ids who had > 100 unique patent-inventor pairings in timeframe
+companies = df_counts[df_counts['company_count'] > patents_cutoff]['assignee_id']
 
 df_counts.set_index('assignee_id', inplace=True)
 
@@ -82,7 +87,9 @@ for c in companies:
     company_name = re.sub('[^0-9a-zA-Z]+', '', company_name)
     Graph = snap.PUNGraph.New()
     #Extract data for company of interest
-    company_info = df_all[df_all['assignee_id'] == c][['patent_id', 'inventor_id']].sort_values(by='patent_id')
+    company_info = df_all[df_all['assignee_id'] == c][['patent_id', 'date', 'inventor_id']].sort_values(by='patent_id')
+    #Get date of oldest patent
+    oldest_patent = max_date.year - min(company_info['date'].tolist()).year
     #Get all nodes (inventors)
     nodes = company_info['inventor_id'].drop_duplicates().tolist()
     #Get all potential edges (patent info)
@@ -92,6 +99,9 @@ for c in companies:
 
     metadata = {}
     metadata['number_of_patents'] = len(patents)
+    metadata['oldest_patent'] = oldest_patent
+    print metadata
+    
     #Add all nodes to graph
     for i in range(0, len(nodes)):
         Graph.AddNode(i)
