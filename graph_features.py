@@ -5,10 +5,13 @@ graph_generation.py should be run before running this file.
 """
 
 from collections import namedtuple
+import cPickle as pickle
 import json
+import matplotlib.pyplot as plt
+import numpy as np
 import os
 import snap
-
+from tqdm import tqdm
 
 # Look into H-index from TA feedback
 NetworkStats = namedtuple("NetworkStats", "node_count edge_count clustering_cf num_sccs "
@@ -49,18 +52,42 @@ def get_modularity(Graph):
 	return modularity
 
 
-def h_index():
-	pass
+def plot_hist(data, title, xlabel):
+	plt.hist(data)
+	plt.xlabel(xlabel)
+	plt.ylabel("Frequency")
+	plt.title(title)
+	plt.show()
 
+def analyze_stats(stats):
+	print "Avg node count", np.mean([net_stats.node_count for net_stats in stats])
+	print "Avg edge count", np.mean([net_stats.edge_count for net_stats in stats])
+	# Histograms
+	plot_hist([net_stats.modularity for net_stats in stats], "Modularity of Organization Patent Networks", "Modularity")
+	plot_hist([net_stats.max_scc_proportion for net_stats in stats], "SCC Proportion of Organization Patent Networks", "Max SCC Proportion")
+	plot_hist([net_stats.avg_patents_per_inventor for net_stats in stats], "Patents per Inventor in Organization Patent Networks", "Average Patents per Inventor")
+	plot_hist([net_stats.clustering_cf for net_stats in stats], "Clustering Coeffecient of Organization Patent Networks", "Clustering Coeffecient (Watts and Strogatz)")
 
-def main():
+def save_net_stats(stats):
+	with open(network_folder + "net_stats.json", 'wb') as fp:
+		pickle.dump(stats, fp)
+
+def load_net_stats():
+	with open(network_folder + "net_stats.json", 'rb') as fp:
+		stats = pickle.load(fp)
+	return stats
+
+def calc_net_stats():
+	print "Loading networks..."
 	AssigneeGraphs = load_networks(network_folder)
-	for AGraph in AssigneeGraphs:
+	stats = []
+	print "Calculating features..."
+	for AGraph in tqdm(AssigneeGraphs):
 		# Calculate network features
 		Graph = AGraph.Graph
 		node_count = Graph.GetNodes()
 		if node_count <= 0:
-			print "0 nodes", AGraph.company_name
+			# print "0 nodes", AGraph.company_name
 			continue
 		edge_count = Graph.GetEdges()
 		cc = snap.GetClustCf(Graph)
@@ -74,8 +101,17 @@ def main():
 		net_stats = NetworkStats(node_count=node_count, edge_count=edge_count, clustering_cf=cc,
 			num_sccs=num_sccs, max_scc_proportion=max_scc_proportion,
 			avg_patents_per_inventor=avg_patents_per_inventor, modularity=modularity)
-		print AGraph.company_name
-		print(net_stats)
+		stats.append(net_stats)
+	return stats
 
+def main():
+	load = True
+	if load:
+		stats = load_net_stats()
+	else:
+		stats = calc_net_stats()
+		save_net_stats(stats)
+	print "Analyzing statistics"
+	analyze_stats(stats)
 
 main()
