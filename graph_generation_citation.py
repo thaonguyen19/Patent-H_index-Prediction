@@ -5,6 +5,7 @@ import json
 import snap
 import csv
 import collections
+import pandas as pd
 import datetime
 from tqdm import tqdm, trange
 from pathlib2 import Path
@@ -36,6 +37,9 @@ for i in trange(len(patentid_col)):
 
 # Create backward citation graphs for each organization
 for company_name, patents in org_patent_cache.iteritems():
+  metadata = {}
+  metadata['number_of_patents'] = len(patents)
+
   Graph = snap.PUNGraph.New()
 
   # Merge list of patents from this company and external patents they cite
@@ -58,6 +62,8 @@ for company_name, patents in org_patent_cache.iteritems():
       Graph.AddEdge(patent_nid_map[patent], patent_nid_map[cite])
 
   snap.PrintInfo(Graph)
+  with open(out_folder + '%s_citation.json' %company_name, 'w') as fp:
+        json.dump(metadata, fp, sort_keys=True, indent=4)
   snap.SaveEdgeList(Graph, out_folder + '{}_citation.txt'.format(company_name), \
                       "Backward citation network for company, drawn from patent data")
   print "Saved data for {}".format(company_name)
