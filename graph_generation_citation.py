@@ -8,15 +8,16 @@ import collections
 import pandas as pd
 import datetime
 from tqdm import tqdm, trange
+import re
 from pathlib2 import Path
 
 data_folder = "../data/"
-out_folder = '../data/networks/'
+out_folder = '../data/citation_networks/'
 
 print "Loading data..."
 
 citation_cache = collections.defaultdict(list) # map each patent to it's citations
-  
+
 # uspatentcitation_filtered_cols.tsv is generated from uspatentcitation.tsv with filter_uspatentcitation.bash
 with open(data_folder + '/uspatentcitation_filtered_cols.tsv') as tsvfile:
   reader = csv.reader(tsvfile, delimiter='\t')
@@ -37,8 +38,11 @@ for i in trange(len(patentid_col)):
 
 # Create backward citation graphs for each organization
 for company_name, patents in org_patent_cache.iteritems():
+  #Strip special characters from company_name
+  company_name = re.sub('[^0-9a-zA-Z]+', '', company_name)
+
   metadata = {}
-  metadata['number_of_patents'] = len(patents)
+  metadata['number_of_patents'] = len(patents) # Number of primary patents
 
   Graph = snap.PUNGraph.New()
 
@@ -62,8 +66,8 @@ for company_name, patents in org_patent_cache.iteritems():
       Graph.AddEdge(patent_nid_map[patent], patent_nid_map[cite])
 
   snap.PrintInfo(Graph)
-  with open(out_folder + '%s_citation.json' %company_name, 'w') as fp:
+  with open(out_folder + '%s.json' %company_name, 'w') as fp:
         json.dump(metadata, fp, sort_keys=True, indent=4)
-  snap.SaveEdgeList(Graph, out_folder + '{}_citation.txt'.format(company_name), \
+  snap.SaveEdgeList(Graph, out_folder + '{}.txt'.format(company_name), \
                       "Backward citation network for company, drawn from patent data")
   print "Saved data for {}".format(company_name)

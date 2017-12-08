@@ -15,12 +15,12 @@ import os
 import json
 import numpy as np
 
-network_folder = '../data/networks/'
-num_features = 9
+network_folder = '../data/citation_networks/'
+num_features = 8
 #convert prediction to a ranking
 use_ranking = False
 #how many features to reduce to (set = to num_components for no pca)
-pca_components = 9
+pca_components = 8
 
 def load_data(folder):
     x = []
@@ -41,6 +41,7 @@ def load_data(folder):
         for k in sorted(data):
             company_x.append(data[k])
         #Filter out the companies without full complement of features
+        print len(company_x)
         if len(company_x) == num_features:
             y.append(company_y)
             x.extend(company_x)
