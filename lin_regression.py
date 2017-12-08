@@ -8,19 +8,24 @@ Inputs are json files named by company
 """
 
 from sklearn.model_selection import cross_val_predict
-from sklearn import linear_model
+from sklearn import linear_model, ensemble, feature_selection
 from sklearn.metrics import mean_absolute_error
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import normalize
 import os
 import json
 import numpy as np
+import random
 
 network_folder = '../data/citation_networks/'
-num_features = 8
 #convert prediction to a ranking
 use_ranking = False
 #how many features to reduce to (set = to num_components for no pca)
-pca_components = 8
+use_pca = False
+pca_components = 6
+
+remove_features = ['edge_count', 'node_count']
+num_features = 9 - len(remove_features)
 
 def load_data(folder):
     x = []
@@ -37,6 +42,10 @@ def load_data(folder):
             data = json.load(fp)
         company_y = data.pop('hindex')
         data.pop('forward_citation_count') 
+        for feature in remove_features:
+            if feature in data:
+                data.pop(feature)
+
         company_x = []
         for k in sorted(data):
             company_x.append(data[k])
@@ -63,9 +72,16 @@ def convert_to_rank(Y):
 
 def main():
     company_names, X, Y = load_data(network_folder)
-    lr = linear_model.LinearRegression()
-    pca = PCA(n_components=pca_components)
-    X = pca.fit_transform(X)
+    print X[1, :]
+    #print feature_selection.mutual_info_regression(X, Y, n_neighbors=3)
+    # sel = feature_selection.SelectKBest(feature_selection.f_regression, k=6) #3.856
+    # X = sel.fit_transform(X, Y)
+    # print X[1, :]
+    # #X = normalize(X, axis=1)
+    lr = linear_model.HuberRegressor()
+    if use_pca:
+        pca = PCA(n_components=pca_components)
+        X = pca.fit_transform(X)
     #Run k-fold cross validation and prediction simultaneously
     Y_pred = cross_val_predict(lr, X, Y, cv=8)
     if use_ranking:
@@ -75,5 +91,7 @@ def main():
         print "Actual: %s, Predicted: %s" %pred_pair
     print "Mean Absolute Error: %s" %mean_absolute_error(Y, Y_pred)
     print "Ground Truth StdDev: %s" %np.std(Y)
+    lr.fit(X, Y_pred)
+    print lr.coef_
 
 main()
