@@ -17,8 +17,6 @@ from tqdm import tqdm
 NetworkStats = namedtuple("NetworkStats", "node_count edge_count clustering_cf num_sccs "
     "max_scc_proportion avg_patents_per_inventor modularity")
 
-network_folder = '../data/networks/'
-
 
 class AssigneeGraph(object):
     def __init__(self, company_name, Graph, metadata):
@@ -28,12 +26,12 @@ class AssigneeGraph(object):
 
 
 # Initial step: Load all generated network files
-def load_networks(folder, postfix=''):
+def load_networks(folder):
     AssigneeGraphs = []
     graph_list = []
     # Load all networks from folder
     for file in os.listdir(folder):
-        if file.endswith(postfix + '.txt'):
+        if file.endswith('.txt'):
             graph_list.append(os.path.join(folder, file))
     for filename in graph_list:
         Graph = snap.LoadEdgeList(snap.PUNGraph, filename, 0, 1, '\t')
@@ -67,20 +65,18 @@ def analyze_stats(stats):
 		plot_hist([net_stats.avg_patents_per_inventor for net_stats in stats], "Patents per Inventor in Organization Patent Networks", "Average Patents per Inventor")
 		plot_hist([net_stats.clustering_cf for net_stats in stats], "Clustering Coeffecient of Organization Patent Networks", "Clustering Coeffecient (Watts and Strogatz)")
 
-def save_net_stats(stats):
-		with open(network_folder + "net_stats.json", 'wb') as fp:
+def save_net_stats(folder, stats):
+		with open(folder + "net_stats.jsn", 'wb') as fp:
 				pickle.dump(stats, fp)
 
-def load_net_stats():
-		with open(network_folder + "net_stats.json", 'rb') as fp:
+def load_net_stats(folder):
+		with open(folder + "net_stats.jsn", 'rb') as fp:
 				stats = pickle.load(fp)
 		return stats
 
-def calc_net_stats():
-		print "Loading networks..."
-		AssigneeGraphs = load_networks(network_folder)
+def calc_net_stats(folder):
 		stats = []
-		print "Calculating features..."
+		print "Loading features..."
 		for AGraph in tqdm(AssigneeGraphs):
 				# Calculate network features
 				Graph = AGraph.Graph
@@ -104,22 +100,25 @@ def calc_net_stats():
 		return stats
 
 def main_net_stats():
-		load = True
-		if load:
-				stats = load_net_stats()
-		else:
-				stats = calc_net_stats()
-				save_net_stats(stats)
-		print "Analyzing statistics"
-		analyze_stats(stats)
+    folder = '../data/citation_networks/'
+    load = False
+    if load:
+    		stats = load_net_stats(folder)
+    else:
+        stats = calc_net_stats(folder)
+        save_net_stats(folder, stats)
+    print "Analyzing statistics"
+    analyze_stats(stats)
 
 
 def main():
-    citation = True
-    postfix = ''
+    citation = False
+
     if citation:
-		    postfix = '_citation'
-    AssigneeGraphs = load_networks(network_folder, postfix=postfix)
+        folder = '../data/citation_networks/'
+    else:
+        folder = '../data/networks/'
+    AssigneeGraphs = load_networks(folder)
     print "Generating features..."
     for AGraph in tqdm(AssigneeGraphs):
         # Calculate network features
@@ -147,7 +146,7 @@ def main():
         AGraph.metadata['max_scc_proportion'] = max_scc_proportion
         AGraph.metadata['avg_patents_per_inventor'] = avg_patents_per_inventor
         AGraph.metadata['modularity'] = modularity
-        with open(network_folder + AGraph.company_name + postfix + '.json', 'w') as fp:
+        with open(folder + AGraph.company_name + '.json', 'w') as fp:
             json.dump(AGraph.metadata, fp, sort_keys=True, indent=4)
     print len(AssigneeGraphs)
 
