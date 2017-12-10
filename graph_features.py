@@ -66,19 +66,17 @@ def analyze_stats(stats):
 		plot_hist([net_stats.clustering_cf for net_stats in stats], "Clustering Coeffecient of Organization Patent Networks", "Clustering Coeffecient (Watts and Strogatz)")
 
 def save_net_stats(folder, stats):
-		with open(folder + "net_stats.json", 'wb') as fp:
+		with open(folder + "net_stats.jsn", 'wb') as fp:
 				pickle.dump(stats, fp)
 
 def load_net_stats(folder):
-		with open(folder + "net_stats.json", 'rb') as fp:
+		with open(folder + "net_stats.jsn", 'rb') as fp:
 				stats = pickle.load(fp)
 		return stats
 
 def calc_net_stats(folder):
-		print "Loading networks..."
-		AssigneeGraphs = load_networks(folder)
 		stats = []
-		print "Calculating features..."
+		print "Loading features..."
 		for AGraph in tqdm(AssigneeGraphs):
 				# Calculate network features
 				Graph = AGraph.Graph
@@ -102,8 +100,8 @@ def calc_net_stats(folder):
 		return stats
 
 def main_net_stats():
-    folder = '../data/networks/'
-    load = True
+    folder = '../data/citation_networks/'
+    load = False
     if load:
     		stats = load_net_stats(folder)
     else:

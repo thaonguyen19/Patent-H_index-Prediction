@@ -24,10 +24,55 @@ use_ranking = False
 use_pca = False
 pca_components = 6
 
-remove_features = ['edge_count', 'node_count']
-num_features = 9 - len(remove_features)
+remove_features = [] #'edge_count', 'node_count']
+# num_features = 9 - len(remove_features)
 
-def load_data(folder):
+def get_data(folder, file):
+    #Load each company's JSON file
+    with open(os.path.join(folder, file), 'r') as fp:
+        data = json.load(fp)
+    company_y = data.pop('hindex')
+    data.pop('forward_citation_count') 
+    for feature in remove_features:
+        if feature in data:
+            data.pop(feature)
+    return data, company_y
+
+def load_data_combined(folder1, folder2, num_features):
+    x = []
+    y = []
+    company_names = []
+    rem = []
+    # Load all networks in folder
+    for file in os.listdir(folder1):
+        if file.endswith(".json") and file in os.listdir(folder2):
+            company_names.append(file)
+    for name in company_names:
+        data, y1 = get_data(folder1, name)
+        data2, y2 = get_data(folder2, name)
+        # coauth first
+        company_x = []
+        for d in [data, data2]:
+            for k in sorted(d):
+                company_x.append(d[k])
+        # print company_x
+        #Filter out the companies without full complement of features
+        print len(company_x)
+        if len(company_x) == num_features:
+            y.append(y1)
+            x.extend(company_x)
+        else:
+            rem.append(name)
+    for c in rem:
+        company_names.remove(c)
+    #Convert to ndarrays
+    x = np.array(x)
+    x = x.reshape((len(company_names), len(x)/len(company_names)))
+    y = np.array(y)
+    company_names = [os.path.splitext(os.path.split(n)[1])[0] for n in company_names]
+    return company_names, x, y
+
+def load_data(folder, num_features):
     x = []
     y = []
     company_names = []
@@ -71,14 +116,19 @@ def convert_to_rank(Y):
     return Y_idx
 
 def main():
-    company_names, X, Y = load_data(network_folder)
+    company_names, X, Y = load_data_combined("../data/networks/", "../data/citation_networks/", 17)
+    # company_names, X, Y = load_data("../data/citation_networks/", 8)
     print X[1, :]
-    #print feature_selection.mutual_info_regression(X, Y, n_neighbors=3)
-    # sel = feature_selection.SelectKBest(feature_selection.f_regression, k=6) #3.856
-    # X = sel.fit_transform(X, Y)
-    # print X[1, :]
-    # #X = normalize(X, axis=1)
     lr = linear_model.HuberRegressor()
+    sel = feature_selection.RFE(lr, n_features_to_select=11)
+    # # sel = feature_selection.SelectKBest(feature_selection.f_regression, k=8) #3.856
+    
+    X = sel.fit_transform(X, Y)
+    print "sup", sel.get_support()
+    # print X[1, :]
+    # X = normalize(X, axis=1)
+    # lr = linear_model.RANSACRegressor()
+    
     if use_pca:
         pca = PCA(n_components=pca_components)
         X = pca.fit_transform(X)

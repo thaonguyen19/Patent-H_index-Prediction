@@ -8,8 +8,8 @@ import os
 import json
 import re
 
-IN_FOLDER = '../data/networks'
-OUT_FOLDER = '../data/viz/'
+IN_FOLDER = '../data/citation_networks/'
+OUT_FOLDER = '../data/citation_viz/'
 
 def load_networks(folder):
     graph_list = []
@@ -29,8 +29,9 @@ def main():
     graphs, names = load_networks(IN_FOLDER)
     for g,n in zip(graphs, names):
         NIdColorH = snap.TIntStrH()
-        for i in g.Nodes():
-            NIdColorH[i.GetId()] = "lightblue"
-        snap.DrawGViz(g, snap.gvlCirco, OUT_FOLDER + n + ".png", n, False, NIdColorH)
+        if g.GetNodes() < 1000:
+            for i in g.Nodes():
+                NIdColorH[i.GetId()] = "red"
+            snap.DrawGViz(g, snap.gvlCirco, OUT_FOLDER + n + ".png", n, False, NIdColorH)
 
 main()
